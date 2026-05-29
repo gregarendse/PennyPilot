@@ -17,6 +17,8 @@ type Config struct {
 	TrueLayerClientID     string
 	TrueLayerClientSecret string
 	TrueLayerRedirectURL  string
+	GoCardlessSecretID    string
+	GoCardlessSecretKey   string
 }
 
 // Load reads configuration from environment variables, applying safe local defaults where possible.
@@ -32,6 +34,8 @@ func Load() (Config, error) {
 		TrueLayerClientID:     os.Getenv("TRUELAYER_CLIENT_ID"),
 		TrueLayerClientSecret: os.Getenv("TRUELAYER_CLIENT_SECRET"),
 		TrueLayerRedirectURL:  getEnv("TRUELAYER_REDIRECT_URL", "http://localhost:8080/auth/truelayer/callback"),
+		GoCardlessSecretID:    os.Getenv("GOCARDLESS_SECRET_ID"),
+		GoCardlessSecretKey:   os.Getenv("GOCARDLESS_SECRET_KEY"),
 	}
 
 	if cfg.EncryptionKeyHex != "" && len(cfg.EncryptionKeyHex) != 64 {

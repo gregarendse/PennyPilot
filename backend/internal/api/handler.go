@@ -8,6 +8,8 @@ import (
 
 	"github.com/pennypilot/pennypilot/backend/internal/config"
 	"github.com/pennypilot/pennypilot/backend/internal/domain"
+	"github.com/pennypilot/pennypilot/backend/internal/sync"
+	"github.com/pennypilot/pennypilot/backend/internal/sync/gocardless"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/monzo"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/truelayer"
 )
@@ -20,8 +22,9 @@ type Dependencies struct {
 
 // Handler exposes the REST API and OAuth callback endpoints.
 type Handler struct {
-	cfg    config.Config
-	logger *slog.Logger
+	cfg      config.Config
+	logger   *slog.Logger
+	registry *sync.Registry
 }
 
 func NewHandler(deps Dependencies) Handler {
@@ -30,16 +33,19 @@ func NewHandler(deps Dependencies) Handler {
 		logger = slog.Default()
 	}
 
-	return Handler{cfg: deps.Config, logger: logger}
+	registry := sync.NewRegistry()
+	registry.Register(monzo.New(deps.Config.MonzoClientID, deps.Config.MonzoRedirectURL))
+	registry.Register(truelayer.New(deps.Config.TrueLayerClientID, deps.Config.TrueLayerRedirectURL))
+	registry.Register(gocardless.New(deps.Config.GoCardlessSecretID, deps.Config.GoCardlessSecretKey))
+
+	return Handler{cfg: deps.Config, logger: logger, registry: registry}
 }
 
 func (h Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.health)
-	mux.HandleFunc("GET /auth/monzo", h.startMonzoAuth)
-	mux.HandleFunc("GET /auth/monzo/callback", h.placeholderCallback("monzo"))
-	mux.HandleFunc("GET /auth/truelayer", h.startTrueLayerAuth)
-	mux.HandleFunc("GET /auth/truelayer/callback", h.placeholderCallback("truelayer"))
+	mux.HandleFunc("GET /auth/{provider}", h.startAuth)
+	mux.HandleFunc("GET /auth/{provider}/callback", h.handleCallback)
 	mux.HandleFunc("GET /api/accounts", h.listAccounts)
 	mux.HandleFunc("POST /api/accounts/{accountID}/sync", h.syncAccount)
 	mux.HandleFunc("GET /api/transactions", h.listTransactions)
@@ -53,23 +59,31 @@ func (h Handler) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (h Handler) startMonzoAuth(w http.ResponseWriter, r *http.Request) {
-	connector := monzo.New(h.cfg.MonzoClientID, h.cfg.MonzoRedirectURL)
-	http.Redirect(w, r, connector.AuthURL("replace-with-csrf-state"), http.StatusFound)
-}
-
-func (h Handler) startTrueLayerAuth(w http.ResponseWriter, r *http.Request) {
-	connector := truelayer.New(h.cfg.TrueLayerClientID, h.cfg.TrueLayerRedirectURL)
-	http.Redirect(w, r, connector.AuthURL("replace-with-csrf-state"), http.StatusFound)
-}
-
-func (h Handler) placeholderCallback(provider string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusAccepted, map[string]string{
-			"provider": provider,
-			"status":   "oauth callback received; credential persistence is not implemented yet",
-		})
+func (h Handler) startAuth(w http.ResponseWriter, r *http.Request) {
+	provider := r.PathValue("provider")
+	connector, err := h.registry.Get(provider)
+	if err != nil {
+		h.logger.Error("failed to find connector", "provider", provider, "error", err)
+		http.Error(w, "Provider not found", http.StatusNotFound)
+		return
 	}
+
+	http.Redirect(w, r, connector.AuthURL("replace-with-csrf-state"), http.StatusFound)
+}
+
+func (h Handler) handleCallback(w http.ResponseWriter, r *http.Request) {
+	provider := r.PathValue("provider")
+	_, err := h.registry.Get(provider)
+	if err != nil {
+		h.logger.Error("failed to find connector for callback", "provider", provider, "error", err)
+		http.Error(w, "Provider not found", http.StatusNotFound)
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, map[string]string{
+		"provider": provider,
+		"status":   "oauth callback received; credential persistence is not implemented yet",
+	})
 }
 
 func (h Handler) listAccounts(w http.ResponseWriter, r *http.Request) {
