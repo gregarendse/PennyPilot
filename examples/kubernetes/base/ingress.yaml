@@ -9,26 +9,29 @@ spec:
   tls:
     - hosts:
         - pennypilot.example.com
-        - api.pennypilot.example.com
       secretName: pennypilot-tls
   rules:
     - host: pennypilot.example.com
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  name: http
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  name: http
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: frontend
-                port:
-                  name: http
-    - host: api.pennypilot.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
                 port:
                   name: http

@@ -10,8 +10,8 @@ stringData:
   TRUELAYER_CLIENT_ID: replace-me
   TRUELAYER_CLIENT_SECRET: replace-me
   FRONTEND_URL: https://pennypilot.example.com
-  MONZO_REDIRECT_URL: https://api.pennypilot.example.com/auth/monzo/callback
-  TRUELAYER_REDIRECT_URL: https://api.pennypilot.example.com/auth/truelayer/callback
+  MONZO_REDIRECT_URL: https://pennypilot.example.com/auth/monzo/callback
+  TRUELAYER_REDIRECT_URL: https://pennypilot.example.com/auth/truelayer/callback
 ---
 apiVersion: v1
 kind: Service

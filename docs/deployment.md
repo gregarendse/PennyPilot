@@ -80,7 +80,7 @@ For fast iteration in a test namespace, track `main` or `sha-*` tags. For stable
 The sample manifests in `examples/kubernetes/base` are intentionally generic. Copy them into your deployment repo and customize:
 
 - Image registry, owner, and tags.
-- Hostnames and TLS configuration.
+- Hostnames, path routing, and TLS configuration.
 - Secret management, preferably External Secrets, Sealed Secrets, SOPS, or your cloud provider's secret manager.
 - PostgreSQL persistence and backups.
 - Resource requests and limits.
@@ -105,11 +105,11 @@ Backend:
 
 Frontend:
 
-- `NEXT_PUBLIC_API_BASE_URL` set to the browser-reachable API URL.
+- `NEXT_PUBLIC_API_BASE_URL` set to `""` for the sample same-origin ingress, or to a browser-reachable API URL if you split the API onto another host. Because `NEXT_PUBLIC_*` values can be baked into Next.js browser bundles at build time, prefer same-origin routing for reusable images.
 
 Infrastructure:
 
 - PostgreSQL database with durable storage and backups.
-- Ingress or gateway routing for frontend and backend.
+- Ingress or gateway routing for frontend and backend. The sample routes `/api` and `/auth` to the backend and everything else to the frontend on one hostname.
 - Image pull credentials if the registry packages are private.
 - TLS certificates, usually via cert-manager.
