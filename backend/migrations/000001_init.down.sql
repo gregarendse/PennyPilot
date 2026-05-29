@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS sync_log;
+DROP TABLE IF EXISTS budgets;
+DROP TABLE IF EXISTS category_rules;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS provider_credentials;
+DROP TABLE IF EXISTS accounts;
+DROP EXTENSION IF EXISTS pgcrypto;
