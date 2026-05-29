@@ -4,6 +4,7 @@ import { StatCard } from '@/components/StatCard';
 const nextSteps = [
   'Connect Monzo with the direct OAuth flow',
   'Add TrueLayer for Barclays and Barclaycard',
+  'Integrate GoCardless for European Open Banking',
   'Upload American Express CSV exports',
   'Create budget categories and monthly targets',
 ];
@@ -21,7 +22,7 @@ export default function Home() {
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <StatCard label="Connected accounts" value="0" helper="Monzo, Barclays, and CSV import connectors are scaffolded." />
+          <StatCard label="Connected accounts" value="0" helper="Monzo, Barclays, GoCardless, and CSV import connectors are scaffolded." />
           <StatCard label="Transactions" value="0" helper="The API is ready for idempotent transaction ingestion." />
           <StatCard label="Budget coverage" value="0%" helper="Monthly category budgets will populate this view." />
         </section>
