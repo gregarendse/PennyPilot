@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
-	banksync "github.com/pennypilot/pennypilot/backend/internal/sync"
 	"github.com/pennypilot/pennypilot/backend/internal/domain"
+	banksync "github.com/pennypilot/pennypilot/backend/internal/sync"
 )
 
 const providerName = "monzo"
