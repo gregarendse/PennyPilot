@@ -62,6 +62,10 @@ curl http://localhost:8080/api/categories
 ```
 
 
+## Deployment
+
+Container image publishing and Kubernetes deployment guidance lives in [docs/deployment.md](docs/deployment.md). This repository publishes application images and keeps generic Kubernetes examples in `examples/kubernetes/base`; keep environment-specific deployment manifests in a separate deployment repository.
+
 ## Project layout
 
 ```

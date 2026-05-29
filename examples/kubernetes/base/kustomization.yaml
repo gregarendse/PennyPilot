@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pennypilot
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - backend.yaml
+  - frontend.yaml
+  - ingress.yaml
+images:
+  - name: ghcr.io/OWNER/pennypilot-backend
+    newTag: latest
+  - name: ghcr.io/OWNER/pennypilot-frontend
+    newTag: latest
