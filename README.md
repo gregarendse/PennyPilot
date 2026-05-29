@@ -61,6 +61,25 @@ curl http://localhost:8080/api/transactions
 curl http://localhost:8080/api/categories
 ```
 
+
+## Project layout
+
+```
+/
+├── backend/                 # Go REST API and bank connector boundary
+│   ├── cmd/server/          # API entrypoint
+│   ├── internal/            # API, config, domain, store, budget, and sync packages
+│   └── migrations/          # PostgreSQL schema migrations
+├── frontend/                # Next.js App Router UI scaffold
+│   ├── app/                 # Routes, layout, and global styles
+│   ├── components/          # Reusable shell and presentation components
+│   └── lib/                 # API client helpers and shared frontend types
+├── docker-compose.yml       # Local Postgres, backend, and frontend services
+└── .env.example             # Required local configuration
+```
+
+The current implementation is intentionally a bootstrap scaffold: API routes return empty placeholder payloads, connector packages expose the target interfaces, and the frontend renders a static product shell while persistence and provider integrations are filled in.
+
 ## Development
 
 ```bash
