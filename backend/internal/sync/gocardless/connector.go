@@ -54,10 +54,10 @@ func (c Connector) Exchange(ctx context.Context, code string) (*banksync.Credent
 }
 
 type tokenResponse struct {
-	Access        string `json:"access"`
-	AccessExpires int    `json:"access_expires"`
-	Refresh       string `json:"refresh"`
-	RefreshExpires int   `json:"refresh_expires"`
+	Access         string `json:"access"`
+	AccessExpires  int    `json:"access_expires"`
+	Refresh        string `json:"refresh"`
+	RefreshExpires int    `json:"refresh_expires"`
 }
 
 func (c Connector) getNewToken(ctx context.Context) (*tokenResponse, error) {
