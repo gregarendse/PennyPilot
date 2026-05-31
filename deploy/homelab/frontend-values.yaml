@@ -1,0 +1,32 @@
+image:
+  repository: ghcr.io/gregarendse/pennypilot-frontend
+  tag: latest
+
+keel:
+  policy: force
+  trigger: poll
+  pollSchedule: "@midnight"
+  approvals: "0"
+
+environment:
+  - name: NEXT_PUBLIC_API_BASE_URL
+    value: "https://pennypilot-api.arendse.nom.za"
+
+service:
+  type: ClusterIP
+
+ports:
+  http:
+    target: 3000
+    protocol: TCP
+
+ingress:
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: pennypilot.arendse.nom.za
+      path: /
+      tls: true
+      service:
+        name: http

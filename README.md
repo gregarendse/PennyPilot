@@ -44,6 +44,10 @@ docker compose up db -d          # Start Postgres only
 cd backend && go run ./cmd/server  # Run backend locally (auto-migrates DB)
 ```
 
+### Self-Hosted Homelab
+
+For automated deployment to a Kubernetes-based homelab (e.g., [gregarendse/homelab](https://github.com/gregarendse/homelab)), see the [Deployment Guide](DEPLOYMENT.md).
+
 Or run everything in Docker:
 ```bash
 docker compose up --build
