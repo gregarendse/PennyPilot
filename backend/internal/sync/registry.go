@@ -34,3 +34,11 @@ func (r *Registry) List() []string {
 	}
 	return names
 }
+
+func (r *Registry) All() map[string]BankConnector {
+	copy := make(map[string]BankConnector, len(r.connectors))
+	for k, v := range r.connectors {
+		copy[k] = v
+	}
+	return copy
+}

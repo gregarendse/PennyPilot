@@ -24,4 +24,5 @@ type BankConnector interface {
 	FetchTransactions(ctx context.Context, creds *Credentials, accountID string, since time.Time) ([]domain.Transaction, error)
 	FetchAccounts(ctx context.Context, creds *Credentials) ([]domain.Account, error)
 	RefreshCredentials(ctx context.Context, creds *Credentials) (*Credentials, error)
+	Ping(ctx context.Context) error
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/pennypilot/pennypilot/backend/internal/config"
 	"github.com/pennypilot/pennypilot/backend/internal/domain"
 	"github.com/pennypilot/pennypilot/backend/internal/sync"
+	"github.com/pennypilot/pennypilot/backend/internal/sync/csv"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/gocardless"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/monzo"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/truelayer"
@@ -34,9 +35,16 @@ func NewHandler(deps Dependencies) Handler {
 	}
 
 	registry := sync.NewRegistry()
-	registry.Register(monzo.New(deps.Config.MonzoClientID, deps.Config.MonzoRedirectURL))
-	registry.Register(truelayer.New(deps.Config.TrueLayerClientID, deps.Config.TrueLayerRedirectURL))
-	registry.Register(gocardless.New(deps.Config.GoCardlessSecretID, deps.Config.GoCardlessSecretKey))
+	if deps.Config.MonzoClientID != "" && deps.Config.MonzoClientSecret != "" {
+		registry.Register(monzo.New(deps.Config.MonzoClientID, deps.Config.MonzoClientSecret, deps.Config.MonzoRedirectURL))
+	}
+	if deps.Config.TrueLayerClientID != "" && deps.Config.TrueLayerClientSecret != "" {
+		registry.Register(truelayer.New(deps.Config.TrueLayerClientID, deps.Config.TrueLayerClientSecret, deps.Config.TrueLayerRedirectURL))
+	}
+	if deps.Config.GoCardlessSecretID != "" && deps.Config.GoCardlessSecretKey != "" {
+		registry.Register(gocardless.New(deps.Config.GoCardlessSecretID, deps.Config.GoCardlessSecretKey))
+	}
+	registry.Register(csv.NewImporter())
 
 	return Handler{cfg: deps.Config, logger: logger, registry: registry}
 }
@@ -44,6 +52,7 @@ func NewHandler(deps Dependencies) Handler {
 func (h Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.health)
+	mux.HandleFunc("GET /api/providers/ping", h.pingProviders)
 	mux.HandleFunc("GET /auth/{provider}", h.startAuth)
 	mux.HandleFunc("GET /auth/{provider}/callback", h.handleCallback)
 	mux.HandleFunc("GET /api/accounts", h.listAccounts)
@@ -57,6 +66,19 @@ func (h Handler) Routes() http.Handler {
 
 func (h Handler) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h Handler) pingProviders(w http.ResponseWriter, r *http.Request) {
+	results := make(map[string]string)
+	for name, connector := range h.registry.All() {
+		if err := connector.Ping(r.Context()); err != nil {
+			results[name] = "error: " + err.Error()
+		} else {
+			results[name] = "ok"
+		}
+	}
+
+	writeJSON(w, http.StatusOK, results)
 }
 
 func (h Handler) startAuth(w http.ResponseWriter, r *http.Request) {
