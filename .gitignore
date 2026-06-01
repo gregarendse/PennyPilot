@@ -13,6 +13,7 @@ frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/npm-debug.log*
+frontend/tsconfig.tsbuildinfo
 
 # Local tooling
 .DS_Store
