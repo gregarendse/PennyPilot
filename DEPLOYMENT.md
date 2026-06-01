@@ -20,10 +20,7 @@ Images:
 
 ### 1. Database Setup
 
-PennyPilot requires a PostgreSQL database. You can use the standard Bitnami PostgreSQL Helm chart or a dedicated instance.
-
-Ensure the database is accessible from the PennyPilot backend at:
-`postgres://pennypilot:pennypilot@pennypilot-db:5432/pennypilot?sslmode=disable`
+PennyPilot requires a PostgreSQL database. Ensure the database is accessible from the PennyPilot backend at its configured `DATABASE_URL`.
 
 ### 2. Secret Management
 
@@ -64,11 +61,88 @@ apps:
         - applications/pennypilot/frontend-values.yaml
 ```
 
-### 4. Configuration Values
+### 4. Configuration Examples
 
-Copy the provided values files from this repository to your `homelab` repository:
+Create the following values files in your `homelab` repository under `applications/pennypilot/`.
 
-1.  `deploy/homelab/backend-values.yaml` -> `applications/pennypilot/backend-values.yaml`
-2.  `deploy/homelab/frontend-values.yaml` -> `applications/pennypilot/frontend-values.yaml`
+#### `backend-values.yaml`
 
-Adjust the `hosts` and `environment` variables in these files to match your homelab's domain and network setup.
+```yaml
+image:
+  repository: ghcr.io/gregarendse/pennypilot-backend
+  tag: latest
+
+keel:
+  policy: force
+  trigger: poll
+  pollSchedule: "@midnight"
+  approvals: "0"
+
+environment:
+  - name: HTTP_ADDR
+    value: ":8080"
+  - name: DATABASE_URL
+    value: "postgres://pennypilot:pennypilot@pennypilot-db:5432/pennypilot?sslmode=disable"
+  - name: FRONTEND_URL
+    value: "https://pennypilot.arendse.nom.za"
+
+service:
+  type: ClusterIP
+
+ports:
+  http:
+    target: 8080
+    protocol: TCP
+
+ingress:
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: pennypilot-api.arendse.nom.za
+      path: /
+      tls: true
+      service:
+        name: http
+
+secrets:
+  environment:
+    - pennypilot-backend-secrets
+```
+
+#### `frontend-values.yaml`
+
+```yaml
+image:
+  repository: ghcr.io/gregarendse/pennypilot-frontend
+  tag: latest
+
+keel:
+  policy: force
+  trigger: poll
+  pollSchedule: "@midnight"
+  approvals: "0"
+
+environment:
+  - name: NEXT_PUBLIC_API_BASE_URL
+    value: "https://pennypilot-api.arendse.nom.za"
+
+service:
+  type: ClusterIP
+
+ports:
+  http:
+    target: 3000
+    protocol: TCP
+
+ingress:
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: pennypilot.arendse.nom.za
+      path: /
+      tls: true
+      service:
+        name: http
+```
