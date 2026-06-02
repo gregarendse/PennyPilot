@@ -8,6 +8,7 @@ import (
 
 	"github.com/pennypilot/pennypilot/backend/internal/config"
 	"github.com/pennypilot/pennypilot/backend/internal/domain"
+	"github.com/pennypilot/pennypilot/backend/internal/store"
 	"github.com/pennypilot/pennypilot/backend/internal/sync"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/csv"
 	"github.com/pennypilot/pennypilot/backend/internal/sync/gocardless"
@@ -19,12 +20,14 @@ import (
 type Dependencies struct {
 	Config config.Config
 	Logger *slog.Logger
+	Store  *store.Store
 }
 
 // Handler exposes the REST API and OAuth callback endpoints.
 type Handler struct {
 	cfg      config.Config
 	logger   *slog.Logger
+	store    *store.Store
 	registry *sync.Registry
 }
 
@@ -46,7 +49,12 @@ func NewHandler(deps Dependencies) Handler {
 	}
 	registry.Register(csv.NewImporter())
 
-	return Handler{cfg: deps.Config, logger: logger, registry: registry}
+	return Handler{
+		cfg:      deps.Config,
+		logger:   logger,
+		store:    deps.Store,
+		registry: registry,
+	}
 }
 
 func (h Handler) Routes() http.Handler {

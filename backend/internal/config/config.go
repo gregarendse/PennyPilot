@@ -8,6 +8,7 @@ import (
 // Config contains runtime settings for the API server and external providers.
 type Config struct {
 	HTTPAddr              string
+	DatabaseDriver        string
 	DatabaseURL           string
 	EncryptionKeyHex      string
 	FrontendURL           string
@@ -25,6 +26,7 @@ type Config struct {
 func Load() (Config, error) {
 	cfg := Config{
 		HTTPAddr:              getEnv("HTTP_ADDR", ":8080"),
+		DatabaseDriver:        getEnv("DATABASE_DRIVER", "postgres"),
 		DatabaseURL:           getEnv("DATABASE_URL", "postgres://pennypilot:pennypilot@localhost:5432/pennypilot?sslmode=disable"),
 		EncryptionKeyHex:      os.Getenv("ENCRYPTION_KEY_HEX"),
 		FrontendURL:           getEnv("FRONTEND_URL", "http://localhost:3000"),

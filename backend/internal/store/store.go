@@ -1,10 +1,80 @@
 package store
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log/slog"
+	"strings"
 
-// Store will own PostgreSQL access for accounts, transactions, budgets, and encrypted credentials.
-type Store struct{}
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/pennypilot/pennypilot/backend/internal/config"
+)
 
-func New() Store { return Store{} }
+// Store will own database access for accounts, transactions, budgets, and encrypted credentials.
+type Store struct {
+	db     *sql.DB
+	logger *slog.Logger
+	cfg    config.Config
+}
 
-func (s Store) Ping(ctx context.Context) error { return nil }
+// New initializes a new Store with the given configuration and logger.
+func New(cfg config.Config, logger *slog.Logger) (*Store, error) {
+	driver := cfg.DatabaseDriver
+	dsn := cfg.DatabaseURL
+
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	return &Store{
+		db:     db,
+		logger: logger,
+		cfg:    cfg,
+	}, nil
+}
+
+// Migrate applies pending migrations to the database.
+func (s *Store) Migrate() error {
+	migrationPath := "file://migrations"
+	if s.cfg.DatabaseDriver == "sqlite3" {
+		migrationPath = "file://migrations/sqlite"
+	}
+
+	dsn := s.cfg.DatabaseURL
+	if s.cfg.DatabaseDriver == "sqlite3" {
+		// Ensure it has the sqlite3:// prefix if not present for the migrate tool
+		if !strings.HasPrefix(dsn, "sqlite3://") {
+			dsn = "sqlite3://" + dsn
+		}
+	}
+
+	m, err := migrate.New(migrationPath, dsn)
+	if err != nil {
+		return fmt.Errorf("failed to initialize migrations: %w", err)
+	}
+	defer m.Close()
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to apply migrations: %w", err)
+	}
+
+	s.logger.Info("migrations applied successfully")
+	return nil
+}
+
+// Ping checks the database connection.
+func (s *Store) Ping(ctx context.Context) error {
+	return s.db.PingContext(ctx)
+}
+
+// Close closes the database connection.
+func (s *Store) Close() error {
+	return s.db.Close()
+}
