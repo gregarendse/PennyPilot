@@ -68,6 +68,9 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /api/transactions", h.listTransactions)
 	mux.HandleFunc("GET /api/categories", h.listCategories)
 	mux.HandleFunc("GET /api/budgets", h.listBudgets)
+	if h.cfg.StaticPath != "" {
+		mux.Handle("GET /", spaHandler(h.cfg.StaticPath))
+	}
 
 	return h.requestLogger(mux)
 }

@@ -12,6 +12,7 @@ type Config struct {
 	DatabaseURL           string
 	EncryptionKeyHex      string
 	FrontendURL           string
+	StaticPath            string
 	MonzoClientID         string
 	MonzoClientSecret     string
 	MonzoRedirectURL      string
@@ -30,6 +31,7 @@ func Load() (Config, error) {
 		DatabaseURL:           getEnv("DATABASE_URL", "postgres://pennypilot:pennypilot@localhost:5432/pennypilot?sslmode=disable"),
 		EncryptionKeyHex:      os.Getenv("ENCRYPTION_KEY_HEX"),
 		FrontendURL:           getEnv("FRONTEND_URL", "http://localhost:3000"),
+		StaticPath:            os.Getenv("STATIC_PATH"),
 		MonzoClientID:         os.Getenv("MONZO_CLIENT_ID"),
 		MonzoClientSecret:     os.Getenv("MONZO_CLIENT_SECRET"),
 		MonzoRedirectURL:      getEnv("MONZO_REDIRECT_URL", "http://localhost:8080/auth/monzo/callback"),

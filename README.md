@@ -5,10 +5,10 @@ A self-hosted budget tracker with automatic bank sync for Monzo, Barclays, and B
 ## Architecture
 
 ```
-Next.js frontend  →  Go REST API  →  PostgreSQL
-                                  ↳  Monzo API (direct OAuth2)
-                                  ↳  TrueLayer (Barclays, Barclaycard)
-                                  ↳  CSV import (Amex, others)
+Static Next.js SPA  →  Go REST API  →  PostgreSQL
+        ↑             ↳  Monzo API (direct OAuth2)
+        └ served by Go ↳  TrueLayer (Barclays, Barclaycard)
+                       ↳  CSV import (Amex, others)
 ```
 
 ## Getting Started
@@ -39,6 +39,16 @@ openssl rand -hex 32
 
 ### 3. Run
 
+Run the distributable app container plus Postgres:
+
+```bash
+docker compose up --build
+```
+
+The root `Dockerfile` builds a static Next.js export, compiles the Go API, and packages both into a `scratch` runtime image. The Go API serves the SPA from `STATIC_PATH` when that environment variable is set.
+
+For local backend-only development:
+
 ```bash
 docker compose up db -d          # Start Postgres only
 cd backend && go run ./cmd/server  # Run backend locally (auto-migrates DB)
@@ -47,11 +57,6 @@ cd backend && go run ./cmd/server  # Run backend locally (auto-migrates DB)
 ### Self-Hosted Homelab
 
 For automated deployment to a Kubernetes-based homelab (e.g., [gregarendse/homelab](https://github.com/gregarendse/homelab)), see the [Deployment Guide](DEPLOYMENT.md).
-
-Or run everything in Docker:
-```bash
-docker compose up --build
-```
 
 ### 4. Connect your Monzo account
 
@@ -82,7 +87,8 @@ Container image publishing and Kubernetes deployment guidance lives in [docs/dep
 │   ├── app/                 # Routes, layout, and global styles
 │   ├── components/          # Reusable shell and presentation components
 │   └── lib/                 # API client helpers and shared frontend types
-├── docker-compose.yml       # Local Postgres, backend, and frontend services
+├── Dockerfile               # Single distributable Go API + static SPA image
+├── docker-compose.yml       # Local Postgres and app services
 └── .env.example             # Required local configuration
 ```
 
