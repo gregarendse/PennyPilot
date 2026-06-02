@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/pennypilot/pennypilot/backend/internal/config"
 	"github.com/pennypilot/pennypilot/backend/internal/domain"
 	"github.com/pennypilot/pennypilot/backend/internal/store"
@@ -58,21 +60,26 @@ func NewHandler(deps Dependencies) Handler {
 }
 
 func (h Handler) Routes() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", h.health)
-	mux.HandleFunc("GET /api/providers/ping", h.pingProviders)
-	mux.HandleFunc("GET /auth/{provider}", h.startAuth)
-	mux.HandleFunc("GET /auth/{provider}/callback", h.handleCallback)
-	mux.HandleFunc("GET /api/accounts", h.listAccounts)
-	mux.HandleFunc("POST /api/accounts/{accountID}/sync", h.syncAccount)
-	mux.HandleFunc("GET /api/transactions", h.listTransactions)
-	mux.HandleFunc("GET /api/categories", h.listCategories)
-	mux.HandleFunc("GET /api/budgets", h.listBudgets)
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Get("/healthz", h.health)
+	r.Get("/api/providers/ping", h.pingProviders)
+	r.Get("/auth/{provider}", h.startAuth)
+	r.Get("/auth/{provider}/callback", h.handleCallback)
+	r.Get("/api/accounts", h.listAccounts)
+	r.Post("/api/accounts/{accountID}/sync", h.syncAccount)
+	r.Get("/api/transactions", h.listTransactions)
+	r.Get("/api/categories", h.listCategories)
+	r.Get("/api/budgets", h.listBudgets)
+
 	if h.cfg.StaticPath != "" {
-		mux.Handle("GET /", spaHandler(h.cfg.StaticPath))
+		r.Get("/*", spaHandler(h.cfg.StaticPath).ServeHTTP)
 	}
 
-	return h.requestLogger(mux)
+	return r
 }
 
 func (h Handler) health(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +100,7 @@ func (h Handler) pingProviders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) startAuth(w http.ResponseWriter, r *http.Request) {
-	provider := r.PathValue("provider")
+	provider := chi.URLParam(r, "provider")
 	connector, err := h.registry.Get(provider)
 	if err != nil {
 		h.logger.Error("failed to find connector", "provider", provider, "error", err)
@@ -105,7 +112,7 @@ func (h Handler) startAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) handleCallback(w http.ResponseWriter, r *http.Request) {
-	provider := r.PathValue("provider")
+	provider := chi.URLParam(r, "provider")
 	_, err := h.registry.Get(provider)
 	if err != nil {
 		h.logger.Error("failed to find connector for callback", "provider", provider, "error", err)
@@ -125,7 +132,7 @@ func (h Handler) listAccounts(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) syncAccount(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]string{
-		"accountId": r.PathValue("accountID"),
+		"accountId": chi.URLParam(r, "accountID"),
 		"status":    "sync job placeholder accepted",
 	})
 }
@@ -149,14 +156,6 @@ func defaultCategories() []domain.Category {
 		{ID: "transport", Name: "Transport", Color: "#f97316", Icon: "train"},
 		{ID: "income", Name: "Income", Color: "#14b8a6", Icon: "wallet"},
 	}
-}
-
-func (h Handler) requestLogger(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startedAt := time.Now()
-		next.ServeHTTP(w, r)
-		h.logger.Info("http request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(startedAt).String())
-	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
