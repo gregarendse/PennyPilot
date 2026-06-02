@@ -10,21 +10,20 @@ This guide explains how to deploy PennyPilot to your homelab using the infrastru
 
 ## Automated Image Builds
 
-The `.github/workflows/ci.yml` in this repository is configured to build and push Docker images for both the backend and frontend to GHCR on every push to `master`.
+The `.github/workflows/ci.yml` in this repository is configured to build and push the combined app Docker image to GHCR on every push to `master`.
 
-Images:
-- `ghcr.io/gregarendse/pennypilot-backend:latest`
-- `ghcr.io/gregarendse/pennypilot-frontend:latest`
+Image:
+- `ghcr.io/gregarendse/pennypilot:latest`
 
 ## Homelab Integration Steps
 
 ### 1. Database Setup
 
-PennyPilot requires a PostgreSQL database. Ensure the database is accessible from the PennyPilot backend at its configured `DATABASE_URL`.
+PennyPilot requires a PostgreSQL database. Ensure the database is accessible from the PennyPilot app at its configured `DATABASE_URL`.
 
 ### 2. Secret Management
 
-Create a Kubernetes secret named `pennypilot-backend-secrets` in the namespace where you plan to deploy the backend. This secret should contain the following environment variables from `.env.example`:
+Create a Kubernetes secret named `pennypilot-backend-secrets` in the namespace where you plan to deploy the app. This secret should contain the following environment variables from `.env.example`:
 
 - `ENCRYPTION_KEY_HEX`
 - `MONZO_CLIENT_ID`
@@ -40,36 +39,24 @@ Add PennyPilot to your `clusters/<cluster>/apps.yaml` in the `homelab` repositor
 
 ```yaml
 apps:
-  - name: pennypilot-backend
+  - name: pennypilot
     type: helm
     namespace: pennypilot
     helm:
       kind: path
       path: server
-      releaseName: pennypilot-backend
+      releaseName: pennypilot
       valueFiles:
-        - applications/pennypilot/backend-values.yaml
-
-  - name: pennypilot-frontend
-    type: helm
-    namespace: pennypilot
-    helm:
-      kind: path
-      path: server
-      releaseName: pennypilot-frontend
-      valueFiles:
-        - applications/pennypilot/frontend-values.yaml
+        - applications/pennypilot/values.yaml
 ```
 
-### 4. Configuration Examples
+### 4. Configuration Example
 
-Create the following values files in your `homelab` repository under `applications/pennypilot/`.
-
-#### `backend-values.yaml`
+Create the following values file in your `homelab` repository under `applications/pennypilot/values.yaml`.
 
 ```yaml
 image:
-  repository: ghcr.io/gregarendse/pennypilot-backend
+  repository: ghcr.io/gregarendse/pennypilot
   tag: latest
 
 keel:
@@ -99,7 +86,7 @@ ingress:
     kubernetes.io/tls-acme: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
-    - host: pennypilot-api.arendse.nom.za
+    - host: pennypilot.arendse.nom.za
       path: /
       tls: true
       service:
@@ -108,41 +95,4 @@ ingress:
 secrets:
   environment:
     - pennypilot-backend-secrets
-```
-
-#### `frontend-values.yaml`
-
-```yaml
-image:
-  repository: ghcr.io/gregarendse/pennypilot-frontend
-  tag: latest
-
-keel:
-  policy: force
-  trigger: poll
-  pollSchedule: "@midnight"
-  approvals: "0"
-
-environment:
-  - name: NEXT_PUBLIC_API_BASE_URL
-    value: "https://pennypilot-api.arendse.nom.za"
-
-service:
-  type: ClusterIP
-
-ports:
-  http:
-    target: 3000
-    protocol: TCP
-
-ingress:
-  annotations:
-    kubernetes.io/tls-acme: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: pennypilot.arendse.nom.za
-      path: /
-      tls: true
-      service:
-        name: http
 ```

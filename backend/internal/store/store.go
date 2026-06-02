@@ -10,10 +10,11 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pennypilot/pennypilot/backend/internal/config"
+	"github.com/pennypilot/pennypilot/backend/migrations"
 )
 
 // Store will own database access for accounts, transactions, budgets, and encrypted credentials.
@@ -42,9 +43,9 @@ func New(cfg config.Config, logger *slog.Logger) (*Store, error) {
 
 // Migrate applies pending migrations to the database.
 func (s *Store) Migrate() error {
-	migrationPath := "file://migrations"
+	migrationPath := "."
 	if s.cfg.DatabaseDriver == "sqlite3" {
-		migrationPath = "file://migrations/sqlite"
+		migrationPath = "sqlite"
 	}
 
 	dsn := s.cfg.DatabaseURL
@@ -55,7 +56,12 @@ func (s *Store) Migrate() error {
 		}
 	}
 
-	m, err := migrate.New(migrationPath, dsn)
+	migrationSource, err := iofs.New(migrations.FS, migrationPath)
+	if err != nil {
+		return fmt.Errorf("failed to load embedded migrations: %w", err)
+	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", migrationSource, dsn)
 	if err != nil {
 		return fmt.Errorf("failed to initialize migrations: %w", err)
 	}

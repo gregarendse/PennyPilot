@@ -4,11 +4,8 @@ namespace: pennypilot
 resources:
   - namespace.yaml
   - postgres.yaml
-  - backend.yaml
-  - frontend.yaml
+  - app.yaml
   - ingress.yaml
 images:
-  - name: ghcr.io/OWNER/pennypilot-backend
-    newTag: latest
-  - name: ghcr.io/OWNER/pennypilot-frontend
+  - name: ghcr.io/OWNER/pennypilot
     newTag: latest

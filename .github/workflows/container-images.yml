@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/container-images.yml"
+      - ".dockerignore"
+      - "Dockerfile"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
@@ -12,6 +14,8 @@ on:
     tags: ["v*"]
     paths:
       - ".github/workflows/container-images.yml"
+      - ".dockerignore"
+      - "Dockerfile"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
@@ -30,18 +34,8 @@ env:
 
 jobs:
   build-and-push:
-    name: Build ${{ matrix.service }} image
+    name: Build app image
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - service: backend
-            context: ./backend
-            image_suffix: backend
-          - service: frontend
-            context: ./frontend
-            image_suffix: frontend
     env:
       HAS_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
     steps:
@@ -59,11 +53,11 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           ghcr_owner="${GHCR_OWNER,,}"
-          echo "ghcr=ghcr.io/${ghcr_owner}/pennypilot-${{ matrix.image_suffix }}" >> "$GITHUB_OUTPUT"
+          echo "ghcr=ghcr.io/${ghcr_owner}/pennypilot" >> "$GITHUB_OUTPUT"
 
           if [ -n "$DOCKERHUB_USERNAME" ]; then
             dockerhub_owner="${DOCKERHUB_USERNAME,,}"
-            echo "dockerhub=${dockerhub_owner}/pennypilot-${{ matrix.image_suffix }}" >> "$GITHUB_OUTPUT"
+            echo "dockerhub=${dockerhub_owner}/pennypilot" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Log in to GitHub Container Registry
@@ -109,7 +103,7 @@ jobs:
       - name: Build and optionally push image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
+          context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
@@ -117,6 +111,6 @@ jobs:
             ${{ steps.meta-dockerhub.outputs.tags }}
           labels: |
             ${{ steps.meta-ghcr.outputs.labels }}
-            org.opencontainers.image.title=PennyPilot ${{ matrix.service }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+            org.opencontainers.image.title=PennyPilot
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
