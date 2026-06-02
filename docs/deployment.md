@@ -4,12 +4,11 @@ This repository owns application source, container images, and deployment exampl
 
 ## What this repo now publishes
 
-The `Container images` GitHub Actions workflow builds two multi-architecture images:
+The `Container images` GitHub Actions workflow builds one multi-architecture image that contains the Go API binary and the exported static SPA:
 
 | Service | GHCR image | Optional Docker Hub image |
 | --- | --- | --- |
-| Backend API | `ghcr.io/<owner>/pennypilot-backend` | `<dockerhub-user>/pennypilot-backend` |
-| Frontend UI | `ghcr.io/<owner>/pennypilot-frontend` | `<dockerhub-user>/pennypilot-frontend` |
+| PennyPilot app | `ghcr.io/<owner>/pennypilot` | `<dockerhub-user>/pennypilot` |
 
 The workflow runs for pull requests, pushes to `main`, version tags such as `v0.1.0`, and manual `workflow_dispatch` runs. Pull requests build the images without pushing them. Pushes and tags publish images.
 
@@ -52,7 +51,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-That publishes both images with the `v0.1.0` tag as well as the immutable `sha-<git-sha>` tag. Use the version tag for human-readable releases and the SHA tag when you want a deployment repo to pin an exact build.
+That publishes the app image with the `v0.1.0` tag as well as the immutable `sha-<git-sha>` tag. Use the version tag for human-readable releases and the SHA tag when you want a deployment repo to pin an exact build.
 
 ## Continuous deployment model
 
@@ -61,7 +60,7 @@ Use the separate deployment repository as the source of truth for your cluster. 
 A typical loop is:
 
 1. Merge code to `main` in this repository.
-2. GitHub Actions builds and publishes `pennypilot-backend` and `pennypilot-frontend` images.
+2. GitHub Actions builds and publishes the combined `pennypilot` image.
 3. The deployment repository updates Kubernetes image tags, either manually or with automation.
 4. A GitOps controller such as Flux or Argo CD reconciles the cluster.
 5. You test the running app and iterate.
@@ -96,20 +95,17 @@ Before applying, replace the placeholder images and secrets in the copied manife
 
 ## Runtime configuration checklist
 
-Backend:
+Application:
 
 - `DATABASE_URL` pointing at PostgreSQL.
 - OAuth credentials for Monzo and TrueLayer.
 - `ENCRYPTION_KEY_HEX` generated with `openssl rand -hex 32`.
 - Public callback URLs that match the OAuth applications.
-
-Frontend:
-
-- `NEXT_PUBLIC_API_BASE_URL` set to `""` for the sample same-origin ingress, or to a browser-reachable API URL if you split the API onto another host. Because `NEXT_PUBLIC_*` values can be baked into Next.js browser bundles at build time, prefer same-origin routing for reusable images.
+- `STATIC_PATH` is set to `/app/public` by the combined image and normally does not need to be overridden.
 
 Infrastructure:
 
 - PostgreSQL database with durable storage and backups.
-- Ingress or gateway routing for frontend and backend. The sample routes `/api` and `/auth` to the backend and everything else to the frontend on one hostname.
+- Ingress or gateway routing to the single app service. The sample routes all paths to the app, which serves `/api`, `/auth`, `/healthz`, and the SPA on one hostname.
 - Image pull credentials if the registry packages are private.
 - TLS certificates, usually via cert-manager.
